@@ -3,38 +3,47 @@
 <meta name="robots" content="noindex,nofollow"><title>Aurora – prueba</title>
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#f4f1ea;color:#222}
-#w{max-width:560px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:#fff}
+#w{max-width:560px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#fff}
 header{padding:14px 16px;background:#1f3a5f;color:#fff}header b{font-size:18px}header small{display:block;opacity:.8}
 #log{flex:1;overflow:auto;padding:12px}.m{margin:8px 0;padding:10px 12px;border-radius:12px;max-width:85%;white-space:pre-wrap;line-height:1.4}
 .a{background:#eef2f7}.u{background:#c9a227;color:#111;margin-left:auto}
 #st{font-size:12px;color:#666;padding:4px 12px}form{display:flex;gap:6px;padding:10px;border-top:1px solid #ddd}
 input{flex:1;padding:10px;font-size:16px;border:1px solid #bbb;border-radius:8px}button{padding:10px 14px;font-size:16px;background:#1f3a5f;color:#fff;border:0;border-radius:8px}
+.qs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.qs button{background:#fff;color:#1f3a5f;border:1px solid #1f3a5f;font-size:14px;padding:8px 10px;border-radius:16px;text-align:left;line-height:1.25;max-width:100%}.qs button.ag{background:#c9a227;color:#111;border-color:#c9a227}
 footer{font-size:11px;color:#777;padding:6px 12px 10px}</style></head><body><div id="w">
 <header><b>Aurora</b><small>Asistente educativa · seguro de vida, gastos finales y última voluntad</small></header>
-<div id="log"></div><div id="st">Cargando…</div>
+<div id="log"></div><div id="st"></div>
 <form id="f"><input id="q" placeholder="Escribe tu pregunta…" autocomplete="off"><button>Enviar</button></form>
 <footer>Información educativa general, no es asesoría. Para precios o recomendaciones te conectamos con un agente licenciado. No compartas información médica. Prototipo de prueba.</footer></div>
 <script type="module">
-import { pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5";
-import { MODEL_ID, SYSTEM, route, sanitize } from "./bot.js";
+import { MODEL_ID, SYSTEM, route, sanitize, FAQ, CONSENT_Q } from "./bot.js";
+let pipeline, TextStreamer;
 const log=document.getElementById("log"), st=document.getElementById("st");
 const add=(t,c)=>{const d=document.createElement("div");d.className="m "+c;d.textContent=t;log.appendChild(d);log.scrollTop=1e9;return d};
-add("¡Hola! Soy Aurora. Te explico el seguro de vida con beneficios en vida, el seguro de gastos finales y la última voluntad. ¿En qué te ayudo?","a");
+add("¡Hola! Soy Aurora. Toca una pregunta para ver la respuesta, o escribe la tuya abajo.","a");
+const linkify=d=>{d.innerHTML=d.innerHTML.replace(/https:\/\/[^\s<]+/g,u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`)};
+function buttons(){log.querySelectorAll(".qs").forEach(x=>x.remove()); const w=document.createElement("div");w.className="qs";
+ FAQ.forEach(f=>{const b=document.createElement("button");b.type="button";b.textContent=f.q;b.onclick=()=>pick(f);w.appendChild(b);});
+ const b=document.createElement("button");b.type="button";b.className="ag";b.textContent="Hablar con un agente";b.onclick=()=>pick({q:"Hablar con un agente",a:"",agent:true});w.appendChild(b);
+ log.appendChild(w);log.scrollTop=1e9;}
+function pick(f){add(f.q,"u"); if(f.agent){state.step="consent"; add((f.a?f.a+" ":"")+CONSENT_Q,"a");} else linkify(add(f.a,"a")); buttons();}
 const state={step:null,lead:{}}; let gen=null, hist=[];
 const pct={};
-async function load(){ let gpuOk=false; try{ gpuOk = !!(navigator.gpu && await navigator.gpu.requestAdapter()); }catch(e){}
+buttons();
+let loading=null;
+async function load(){ st.textContent="Preparando respuestas abiertas (solo la primera vez)…"; ({pipeline,TextStreamer}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5")); let gpuOk=false; try{ gpuOk = !!(navigator.gpu && await navigator.gpu.requestAdapter()); }catch(e){}
   for (const dev of (gpuOk ? ["webgpu"] : ["wasm"])) {
   try{ gen = await pipeline("text-generation", dev==="webgpu" ? MODEL_ID : "onnx-community/Qwen2.5-0.5B-Instruct", {dtype:"q4", device:dev, progress_callback:p=>{ if(p.status==="progress"){pct[p.file]=p.progress; const v=Object.values(pct); st.textContent=`Descargando el modelo (solo la primera vez): ${Math.round(v.reduce((a,b)=>a+b,0)/v.length)}%`;}}});
     st.textContent = "Listo ("+dev+"). Las respuestas abiertas pueden tardar 10–40 s."; return; }
   catch(e){ console.error("load "+dev, e); } }
   st.textContent="No se pudo cargar el modelo en este equipo; solo responderán las preguntas frecuentes."; }
-load();
 document.getElementById("f").onsubmit=async e=>{e.preventDefault(); const q=document.getElementById("q").value.trim(); if(!q) return; document.getElementById("q").value=""; add(q,"u");
-  const r=route(q,state); if(r){add(r,"a");return;}
-  if(!gen){add("Todavía estoy preparándome. Mientras tanto, pregúntame por beneficios en vida, hipoteca, gastos finales o la última voluntad.","a");return;}
+  const r=route(q,state); if(r){add(r,"a"); if(!state.step) buttons(); return;}
+  if(!loading) loading=load();
+  if(!gen){const w=add("Un momento, estoy preparándome para responder preguntas abiertas (la primera vez puede tardar). Mientras tanto puedes tocar una de las preguntas.","a"); await loading; if(!gen){buttons();return;}}
   const d=add("…","a"); let txt="";
   const msgs=[{role:"system",content:SYSTEM},...hist.slice(-4),{role:"user",content:q}];
   const streamer=new TextStreamer(gen.tokenizer,{skip_prompt:true,skip_special_tokens:true,callback_function:t=>{txt+=t;d.textContent=sanitize(txt);log.scrollTop=1e9;}});
   const out=await gen(msgs,{max_new_tokens:200,do_sample:false,repetition_penalty:1.1,streamer});
-  const fin=sanitize(out[0].generated_text.at(-1).content); d.textContent=fin; hist.push({role:"user",content:q},{role:"assistant",content:fin}); };
+  const fin=sanitize(out[0].generated_text.at(-1).content); d.textContent=fin; buttons(); hist.push({role:"user",content:q},{role:"assistant",content:fin}); };
 </script></body></html>
