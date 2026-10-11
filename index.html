@@ -22,7 +22,8 @@ const add=(t,c)=>{const d=document.createElement("div");d.className="m "+c;d.tex
 add("¡Hola! Soy Aurora. Te explico el seguro de vida con beneficios en vida, el seguro de gastos finales y la última voluntad. ¿En qué te ayudo?","a");
 const state={step:null,lead:{}}; let gen=null, hist=[];
 const pct={};
-async function load(){ for (const dev of (navigator.gpu ? ["webgpu","wasm"] : ["wasm"])) {
+async function load(){ let gpuOk=false; try{ gpuOk = !!(navigator.gpu && await navigator.gpu.requestAdapter()); }catch(e){}
+  for (const dev of (gpuOk ? ["webgpu"] : ["wasm"])) {
   try{ gen = await pipeline("text-generation", MODEL_ID, {dtype:"q4", device:dev, progress_callback:p=>{ if(p.status==="progress"){pct[p.file]=p.progress; const v=Object.values(pct); st.textContent=`Descargando el modelo (solo la primera vez, ~1 GB): ${Math.round(v.reduce((a,b)=>a+b,0)/v.length)}%`;}}});
     st.textContent = "Listo ("+dev+"). Las respuestas abiertas pueden tardar 10–40 s."; return; }
   catch(e){ console.error("load "+dev, e); } }
