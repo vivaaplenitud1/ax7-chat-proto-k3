@@ -22,10 +22,11 @@ const add=(t,c)=>{const d=document.createElement("div");d.className="m "+c;d.tex
 add("¡Hola! Soy Aurora. Te explico el seguro de vida con beneficios en vida, el seguro de gastos finales y la última voluntad. ¿En qué te ayudo?","a");
 const state={step:null,lead:{}}; let gen=null, hist=[];
 const pct={};
-async function load(){ const dev = navigator.gpu ? "webgpu" : "wasm";
+async function load(){ for (const dev of (navigator.gpu ? ["webgpu","wasm"] : ["wasm"])) {
   try{ gen = await pipeline("text-generation", MODEL_ID, {dtype:"q4", device:dev, progress_callback:p=>{ if(p.status==="progress"){pct[p.file]=p.progress; const v=Object.values(pct); st.textContent=`Descargando el modelo (solo la primera vez, ~1 GB): ${Math.round(v.reduce((a,b)=>a+b,0)/v.length)}%`;}}});
-    st.textContent = "Listo ("+dev+"). Las respuestas abiertas pueden tardar 10–40 s."; }
-  catch(e){ console.error(e); st.textContent="No se pudo cargar el modelo en este equipo; solo responderán las preguntas frecuentes."; } }
+    st.textContent = "Listo ("+dev+"). Las respuestas abiertas pueden tardar 10–40 s."; return; }
+  catch(e){ console.error("load "+dev, e); } }
+  st.textContent="No se pudo cargar el modelo en este equipo; solo responderán las preguntas frecuentes."; }
 load();
 document.getElementById("f").onsubmit=async e=>{e.preventDefault(); const q=document.getElementById("q").value.trim(); if(!q) return; document.getElementById("q").value=""; add(q,"u");
   const r=route(q,state); if(r){add(r,"a");return;}
