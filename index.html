@@ -16,7 +16,7 @@ footer{font-size:11px;color:#777;padding:6px 12px 10px}</style></head><body><div
 <form id="f"><input id="q" placeholder="Escribe tu pregunta…" autocomplete="off"><button>Enviar</button></form>
 <footer>Información educativa general, no es asesoría. Para precios o recomendaciones te conectamos con un agente licenciado. No compartas información médica. Prototipo de prueba.</footer></div>
 <script type="module">
-import { MODEL_ID, SYSTEM, route, routeTopic, match, presetForRoute, FALLBACK, sanitize, FAQ, CONSENT_Q } from "./bot.js";
+import { onTopic, OFFTOPIC, MODEL_ID, SYSTEM, route, routeTopic, match, presetForRoute, FALLBACK, sanitize, FAQ, CONSENT_Q } from "./bot.js";
 const used=new Set();
 let pipeline, TextStreamer;
 const log=document.getElementById("log"), st=document.getElementById("st");
@@ -45,6 +45,7 @@ document.getElementById("f").onsubmit=async e=>{e.preventDefault(); const qi=doc
   if(m){ const f=m.entry; if(m.preset) used.add(f.id);
     if(f.agent){state.step="consent"; add(f.a+" "+CONSENT_Q,"a");} else { linkify(add(f.a,"a")); buttons(); } return; }
   r=routeTopic(q,state); if(r){add(r,"a"); buttons(); return;}
+  if(!onTopic(q)){ add(OFFTOPIC,"a"); buttons(); return; }
   const fail=()=>{state.step="consent"; add(FALLBACK,"a");};
   if(!loading) loading=Promise.race([load().catch(e=>console.error(e)), new Promise(res=>setTimeout(res,180000))]);
   if(!gen){ add("Un momento, estoy preparándome para responder preguntas abiertas (la primera vez puede tardar). Mientras tanto puedes tocar una de las preguntas.","a"); await loading; if(!gen){ st.textContent=""; fail(); return; } }

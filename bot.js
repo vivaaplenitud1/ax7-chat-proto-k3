@@ -123,3 +123,5 @@ export function presetForRoute(text) {
   return null;
 }
 export const FALLBACK = "Esa pregunta no la puedo contestar bien desde aquí. Un agente licenciado puede ayudarte con gusto. " + CONSENT_Q;
+export const OFFTOPIC = "Solo puedo ayudarte con preguntas sobre seguro de vida, beneficios en vida, gastos finales y última voluntad. ¿Quieres preguntarme algo de eso o hablar con un agente?";
+export const onTopic = text => /(segur|poliz|vida|benefic|hipoteca|casa|funeral|entierro|cremac|voluntad|testament|prima|cobertura|asegur|muer|fallec|enferm|salud|herencia|bienes|deuda|famil|hijo|esposa|esposo|cobrar|pagar|dinero|plan|retiro|agente)/.test(norm(text));
