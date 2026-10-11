@@ -14,6 +14,7 @@ Reglas estrictas:
 - Nunca prometas aprobación garantizada; la aprobación depende de la evaluación de la aseguradora.
 - Di siempre "última voluntad", nunca la otra palabra.
 - No pidas detalles de salud.
+- Si la pregunta no trata de seguros de vida, gastos finales, beneficios en vida, hipoteca o última voluntad, responde solo: "Solo puedo ayudarte con preguntas sobre seguro de vida, gastos finales y última voluntad. ¿Quieres preguntarme algo de eso o hablar con un agente?"
 - No inventes números de licencia, direcciones ni datos del agente.`;
 
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
